@@ -1,0 +1,13 @@
+analyzers:
+  machines:
+    type: GenericAnalyzer
+    path: machines
+    contains: [
+      'Operating System',
+      'Hostname',
+      'Release',
+      'Version',
+      'Machine',
+      'Total CPU Count',
+      'Total CPU Usage',
+      'RAM Usage']

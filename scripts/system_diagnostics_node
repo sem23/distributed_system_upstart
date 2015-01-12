@@ -1,0 +1,100 @@
+#!/usr/bin/env python
+
+import rospy
+import psutil
+import platform
+
+from diagnostic_msgs.msg import (
+    DiagnosticArray,
+    DiagnosticStatus,
+    KeyValue,
+)
+
+
+class SystemDiagnostics(object):
+
+    def __init__(self):
+        self._diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=10)
+
+    @staticmethod
+    def collect_information():
+
+        uname = platform.os.uname()
+        vmem = psutil.virtual_memory()
+        cpu_usage = psutil.cpu_percent()
+        mem_usage = vmem[2]
+
+        diag_array = DiagnosticArray()
+        diag_array.header.stamp = rospy.Time.now()
+        diag_array.header.frame_id = '/base_link'
+        diag_status = DiagnosticStatus()
+        diag_status.name = '/machines/' + uname[1]
+        diag_status.hardware_id = uname[1]
+
+        diag_kv = KeyValue()
+        diag_kv.key = 'Operating System'
+        diag_kv.value = uname[0]
+        diag_status.values.append(diag_kv)
+        diag_kv = KeyValue()
+        diag_kv.key = 'Hostname'
+        diag_kv.value = uname[1]
+        diag_status.values.append(diag_kv)
+        diag_kv = KeyValue()
+        diag_kv.key = 'Release'
+        diag_kv.value = uname[2]
+        diag_status.values.append(diag_kv)
+        diag_kv = KeyValue()
+        diag_kv.key = 'Version'
+        diag_kv.value = uname[3]
+        diag_status.values.append(diag_kv)
+        diag_kv = KeyValue()
+        diag_kv.key = 'Machine'
+        diag_kv.value = uname[4]
+        diag_status.values.append(diag_kv)
+        diag_kv = KeyValue()
+        diag_kv.key = 'Total CPU Count'
+        diag_kv.value = '{}'.format(psutil.NUM_CPUS)
+        diag_status.values.append(diag_kv)
+        diag_kv = KeyValue()
+        diag_kv.key = 'Total CPU Usage'
+        diag_kv.value = '{} %'.format(cpu_usage)
+        diag_status.values.append(diag_kv)
+        diag_kv = KeyValue()
+        diag_kv.key = 'RAM Usage'
+        diag_kv.value = '{} %, {:.2f} GB'.format(mem_usage, (vmem[5] / 1048576) / 1024.0)
+        diag_status.values.append(diag_kv)
+
+        # setup level and message depending on cpu and mem usage
+        if cpu_usage >= 90.0 and mem_usage >= 75.0:
+            # critical load
+            diag_status.message = 'system is overloaded!'
+            diag_status.level = DiagnosticStatus.ERROR
+        elif cpu_usage >= 90.0 and mem_usage < 75.0:
+            # cpu usage
+            diag_status.message = 'system is up! cpu is under heavy load!'
+            diag_status.level = DiagnosticStatus.WARN
+        elif cpu_usage < 90.0 and mem_usage >= 75.0:
+            # cpu usage
+            diag_status.message = 'system is up! memory usage is critical high!'
+            diag_status.level = DiagnosticStatus.WARN
+        else:
+            # snafu
+            diag_status.message = 'system is up!'
+            diag_status.level = DiagnosticStatus.OK
+
+        diag_array.status.append(diag_status)
+        return diag_array
+
+    def publish_diagnostics(self):
+        self._diag_pub.publish(self.collect_information())
+
+    def run(self):
+        r = rospy.Rate(10.0)
+        while not rospy.is_shutdown():
+            self.publish_diagnostics()
+            r.sleep()
+
+
+rospy.init_node('system_diagnostics')
+sd = SystemDiagnostics()
+sd.run()

@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+
+import avahi
+import dbus
+import gobject
+import platform
+
+name = 'Distributed ROS slave [{}]'.format(platform.node())
+service_type = '_distributed_ros_slave._tcp'
+domain = ''
+host = ''
+port = 0
+text = ''
+group = None
+
+
+def publish():
+    global group
+    bus = dbus.SystemBus()
+    server = dbus.Interface(bus.get_object(avahi.DBUS_NAME, avahi.DBUS_PATH_SERVER), avahi.DBUS_INTERFACE_SERVER)
+    g = dbus.Interface(bus.get_object(avahi.DBUS_NAME, server.EntryGroupNew()), avahi.DBUS_INTERFACE_ENTRY_GROUP)
+    g.AddService(avahi.IF_UNSPEC, avahi.PROTO_UNSPEC, dbus.UInt32(0), name, service_type,
+                 domain, host, dbus.UInt16(port), text)
+    g.Commit()
+    group = g
+
+
+def un_publish():
+    group.Reset()
+
+
+print '\nstarting distributed ROS slave.'
+# start publishing zeroconf service
+publish()
+print '\npublished distributed ROS slave service.'
+
+# enter main loop
+try:
+    gobject.MainLoop().run()
+except:
+    gobject.MainLoop().quit()
+
+# stop publishing zeroconf service
+un_publish()
+print '\nun-published distributed ROS slave service.'
+print '\nshutdown distributed ROS slave.'

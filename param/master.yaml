@@ -1,0 +1,5 @@
+slaves:
+- ros-edge-E531
+launch:
+  pkg: distributed_system_upstart
+  file: demo.launch

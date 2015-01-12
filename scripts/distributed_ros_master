@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import dbus
+import yaml
+import gobject
+import avahi
+import subprocess
+import rospkg
+from dbus.mainloop.glib import DBusGMainLoop
+
+# append environment
+mod_env = os.environ.copy()
+mod_env['ROSLAUNCH_SSH_UNKNOWN'] = '1'
+
+# get master configuration
+rospack = rospkg.RosPack()
+pkg_path = rospack.get_path('distributed_system_upstart')
+config_file = '{}/param/master.yaml'.format(pkg_path)
+try:
+    stream = open(config_file, 'r')
+    config = yaml.load(stream)
+except:
+    print 'Could not find configuration file: {}'.format(config_file)
+    sys.exit(-1)
+
+# get master .launch file
+master_launch_file = '{} {}'.format(config['launch']['pkg'], config['launch']['file'])
+
+# get slaves
+slaves_to_wait_for = config[slaves]
+for slave in slaves_to_wait_for:
+    slave += '.local'
+
+
+def service_resolved(*args):
+    global mod_env
+    name = args[5]
+    print 'Found slave:'
+    print '     Name:', name
+    print '  Address:', args[7]
+    if name in slaves_to_wait_for:
+        print 'Slave is a desired one.'
+        slaves_to_wait_for.remove(name)
+        if not len(slaves_to_wait_for):
+            command = 'roslaunch {}'.format(master_launch_file)
+            print 'All desired slaves are up!'
+            print 'Command "{}" is executed now.'.format(command)
+            subprocess.call(['bash', '-c', command], env=mod_env)
+        else:
+            if len(slaves_to_wait_for) == 1:
+                print 'Still waiting for 1 slave...'
+            else:
+                print 'Still waiting for {} slaves...'.format(len(slaves_to_wait_for))
+    else:
+        print 'Slave is not suitable.'
+
+
+def print_error(*args):
+    print 'error_handler'
+    print args[0]
+
+
+def zeroconf_handler(interface, protocol, name, service_type, domain, flags):
+    # skip localhost
+    if flags & avahi.LOOKUP_RESULT_LOCAL:
+        # local service, skip
+        pass
+    # resolve service
+    server.ResolveService(interface, protocol, name, service_type,
+                          domain, avahi.PROTO_UNSPEC, dbus.UInt32(0),
+                          reply_handler=service_resolved, error_handler=print_error)
+
+
+
+# setup zeroconf service listener
+service_name = "_distributed_ros_slave._tcp"
+loop = DBusGMainLoop()
+bus = dbus.SystemBus(mainloop=loop)
+server = dbus.Interface(bus.get_object(avahi.DBUS_NAME, '/'), 'org.freedesktop.Avahi.Server')
+service_browser = server.ServiceBrowserNew(avahi.IF_UNSPEC, avahi.PROTO_UNSPEC, service_name, 'local', dbus.UInt32(0))
+service_interface = dbus.Interface(bus.get_object(avahi.DBUS_NAME, service_browser),
+                                   avahi.DBUS_INTERFACE_SERVICE_BROWSER)
+service_interface.connect_to_signal("ItemNew", zeroconf_handler)
+
+print '\nstarting distributed ROS master.'
+# enter main loop
+try:
+    gobject.MainLoop().run()
+except:
+    gobject.MainLoop().quit()
+print
+print 'shutdown distributed ROS master.'

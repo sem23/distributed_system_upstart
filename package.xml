@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>distributed_system_upstart</name>
+  <version>1.0.0</version>
+  <description>The distributed_system_upstart package</description>
+  <maintainer email="semael23@gmail.com">Peter Rudolph</maintainer>
+
+  <license>MIT</license>
+
+  <url type="website">http://wiki.ros.org/distributed_system_upstart</url>
+
+  <author email="semael23@gmail.com">Peter Rudolph</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>rospy</depend>
+  <depend>libavahi-client-dev</depend>
+  <depend>libavahi-core-dev</depend>
+  <exec_depend>avahi-daemon</exec_depend>
+
+</package>
