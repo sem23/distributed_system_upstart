@@ -26,6 +26,10 @@ import subprocess
 import rospkg
 from catkin.find_in_workspaces import get_workspaces
 
+# env
+ROS_DISTRO = os.environ['ROS_DISTRO']
+ROS_BIN = '/opt/ros/{}/bin'.format(ROS_DISTRO)
+
 # this is just a global setting now, maybe its configurable later...
 ZEROCONF_SUFFIX = '.local'
 
@@ -54,7 +58,7 @@ def check_settings():
     return correct
 
 
-def create_starter_script(user, pkg_path, is_master):
+def create_starter_script(user, is_master):
     """
     Create starter bash script.
     """
@@ -62,15 +66,16 @@ def create_starter_script(user, pkg_path, is_master):
         '#!/bin/bash',
         '',
         'source /home/{}/.ros/env/distributed_ros.bash'.format(user),
-        'python {}/scripts/distributed_ros_{}'.format(pkg_path, 'master' if is_master else 'slave'),
+        'rosrun distributed_system_upstart distributed_ros_{}'.format('master' if is_master else 'slave'),
     ]
     return '\n'.join(template)
 
 
-def create_upstart_script(iface, is_master, pkg_path):
+def create_upstart_script(iface):
     """
     Create upstart service script.
     """
+    global ROS_BIN
     template = [
         'description "Distributed ROS autostart"',
         'author "semael23@gmail.com"',
@@ -82,7 +87,7 @@ def create_upstart_script(iface, is_master, pkg_path):
         '',
         'env ROSLAUNCH_SSH_UNKNOWN=1',
         '',
-        'exec {}/scripts/starter.bash'.format(pkg_path),
+        'exec {}/distributed_ros'.format(ROS_BIN),
     ]
     return '\n'.join(template)
 
@@ -127,11 +132,11 @@ pkg_path = rospack.get_path('distributed_system_upstart')
 
 # check clean
 if args.clean:
-    if os.path.exists('/home/{}/.ros/env/distributed_env.bash'.format(user)):
-        os.remove('/home/{}/.ros/env/distributed_env.bash'.format(user))
+    if os.path.exists('/home/{}/.ros/env/distributed_ros.bash'.format(user)):
+        os.remove('/home/{}/.ros/env/distributed_ros.bash'.format(user))
         print 'Removed environment setup script.'
-    if os.path.exists('{}/scripts/starter.bash'.format(pkg_path)):
-        os.remove('{}/scripts/starter.bash'.format(pkg_path))
+    if os.path.exists('{}/distributed_ros'.format(ROS_BIN)):
+        os.remove('{}/distributed_ros'.format(ROS_BIN))
         print 'Removed starter script.'
     if os.path.exists('/etc/init/distributed-ros.conf'):
         command = "rm /etc/init/distributed-ros.conf"
@@ -193,17 +198,25 @@ print 'Verify settings (if settings are correct, files are written to their desi
 if check_settings():
 
     # write upstart script (utilizing sudo)
-    upstart_script = create_upstart_script(iface, is_master, pkg_path)
+    upstart_script = create_upstart_script(iface)
     try:
-        command = "echo '{}' >> /etc/init/distributed-ros.conf".format(upstart_script)
+        command = "echo '{}' > /etc/init/distributed-ros.conf".format(upstart_script)
         subprocess.call(["/usr/bin/sudo", "sh", "-c", command])
     except:
         raise
+    print 'Wrote upstart script to "/etc/init/distributed-ros.conf".'
 
-    # write starter script
-    starter_script = create_starter_script(user, pkg_path, is_master)
-    with open('{}/scripts/starter.bash'.format(pkg_path), 'w+') as f:
-        f.write(starter_script)
+    # write starter script (utilizing sudo)
+    starter_script = create_starter_script(user, is_master)
+    try:
+        command = "echo '{}' > {}/distributed_ros".format(starter_script, ROS_BIN)
+        subprocess.call(["/usr/bin/sudo", "sh", "-c", command])
+        command = "chmod +x {}/distributed_ros".format(ROS_BIN)
+        subprocess.call(["/usr/bin/sudo", "sh", "-c", command])
+    except:
+        raise
+    print 'Wrote starter script to "{}/distributed_ros".'.format(ROS_BIN)
+
 
     # write environment script
     env_setup_script = create_env_setup_script(ws_path, master_hostname, hostname)
@@ -211,6 +224,7 @@ if check_settings():
         os.mkdir('/home/{}/.ros/env'.format(user))
     with open('/home/{}/.ros/env/distributed_ros.bash'.format(user), 'w+') as f:
         f.write(env_setup_script)
+    print 'Wrote environment script to "/home/{}/.ros/env/distributed_ros.bash".'.format(user)
 
     print 'Finished writing files. Done.'
 
