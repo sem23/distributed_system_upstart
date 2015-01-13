@@ -29,7 +29,7 @@ except:
 master_launch_file = '{} {}'.format(config['launch']['pkg'], config['launch']['file'])
 
 # get slaves
-slaves_to_wait_for = config[slaves]
+slaves_to_wait_for = config['slaves']
 for slave in slaves_to_wait_for:
     slave += '.local'
 
