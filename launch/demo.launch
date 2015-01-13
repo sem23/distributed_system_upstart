@@ -4,12 +4,12 @@
     <include file="$(find distributed_system_upstart)/launch/machines.launch" />
 
     <!-- start system diagnostics on all machines -->
-    <node pkg="distributed_ros" type="system_diagnostics_node" name="machine_main_system_diagnostics" machine="machine_main" />
-    <node pkg="distributed_ros" type="system_diagnostics_node" name="machine_aux1_system_diagnostics" machine="machine_aux1" />
+    <node pkg="distributed_system_upstart" type="system_diagnostics_node" name="machine_main_system_diagnostics" machine="machine_main" />
+    <node pkg="distributed_system_upstart" type="system_diagnostics_node" name="machine_aux1_system_diagnostics" machine="machine_aux1" />
 
     <!-- start diagnostic aggregator on machine_main -->
     <node pkg="diagnostic_aggregator" type="aggregator_node" name="diag_agg" machine="machine_main" >
-        <rosparam command="load" file="$(find distributed_ros)/param/system_analyzer_demo.yaml" />
+        <rosparam command="load" file="$(find distributed_system_upstart)/param/system_analyzer_demo.yaml" />
     </node>
 
     <!-- start rqt_robot_monitor on machine_main -->

@@ -1,6 +1,6 @@
 <launch>
 
     <machine name="machine_main" address="ros-master.local" env-loader="/home/user/.ros/env/distributed_ros.bash" user="user" default="true" />
-    <machine name="machine_aux1" address="ros-slave.local" env-loader="/home/user/.ros/env/distributed_ros.bash" user="user" />
+    <machine name="machine_aux1" address="ros-slave1.local" env-loader="/home/user/.ros/env/distributed_ros.bash" user="user" />
 
 </launch>
