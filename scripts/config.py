@@ -209,7 +209,7 @@ if check_settings():
     env_setup_script = create_env_setup_script(ws_path, master_hostname, hostname)
     if not os.path.exists('/home/{}/.ros/env'.format(user)):
         os.mkdir('/home/{}/.ros/env'.format(user))
-    with open('/home/{}/.ros/env/distributed_env.bash'.format(user), 'w+') as f:
+    with open('/home/{}/.ros/env/distributed_ros.bash'.format(user), 'w+') as f:
         f.write(env_setup_script)
 
     print 'Finished writing files. Done.'
