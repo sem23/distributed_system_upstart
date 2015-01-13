@@ -30,9 +30,11 @@ master_launch_file = '{} {}'.format(config['launch']['pkg'], config['launch']['f
 
 # get slaves
 slaves_to_wait_for = config['slaves']
+for i in range(len(slaves_to_wait_for)):
+    slaves_to_wait_for[i] += '.local'
+print 'Waiting for:'
 for slave in slaves_to_wait_for:
-    slave += '.local'
-
+    print '  {}'.format(slave)
 
 def service_resolved(*args):
     global mod_env

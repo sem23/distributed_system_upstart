@@ -16,6 +16,7 @@
   <depend>rospy</depend>
   <depend>libavahi-client-dev</depend>
   <depend>libavahi-core-dev</depend>
+  <depend>python-avahi</depend>
   <exec_depend>avahi-daemon</exec_depend>
 
 </package>

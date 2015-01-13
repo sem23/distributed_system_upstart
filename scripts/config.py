@@ -224,6 +224,8 @@ if check_settings():
         os.mkdir('/home/{}/.ros/env'.format(user))
     with open('/home/{}/.ros/env/distributed_ros.bash'.format(user), 'w+') as f:
         f.write(env_setup_script)
+    st = os.stat('/home/{}/.ros/env/distributed_ros.bash'.format(user))
+    os.chmod('/home/{}/.ros/env/distributed_ros.bash'.format(user), st.st_mode | stat.S_IEXEC)
     print 'Wrote environment script to "/home/{}/.ros/env/distributed_ros.bash".'.format(user)
 
     print 'Finished writing files. Done.'
